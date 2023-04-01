@@ -44,15 +44,54 @@ router.post('/createuser', [
         const authTocken = jwt.sign(data, 'shhhhh');
 
         // send response that this user is created
-        // res.json(user)
-        res.json({authTocken});
+        res.json({ authTocken });
 
     } catch (err) {
         // catching unknown erros
         console.error(err);
-        res.status(500).send("Some error occured")
+        res.status(500).send("Internal Server Error")
     }
 
+});
+
+// authenticate a user using POST -> /api/auth/login. No login require
+router.post('/login', [
+    body('email', "Enter valid mail Id").isEmail(),
+    body('password', "Password can't be blank").exists(),
+
+], async (req, res) => {
+
+    // if there are errors, return Bad request and the error
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {email, password} = req.body;
+    try {
+        const user = await User.findOne({email});
+        if(!user){
+            return res.status(400).json({error: "Invalid Userid or Password !"});
+        }
+
+        const passwordCompare = await bcrypt.compare(password, user.password);
+        if(!passwordCompare){
+            return res.status(400).json({error: "Invalid Userid or Password !"});
+        }
+
+        const data = {
+            user: {
+                id: user.id
+            }
+        }
+        const authTocken = jwt.sign(data, JWT_Secret);
+        res.json({ authTocken });
+
+    }  catch (err) {
+        // catching unknown erros
+        console.error(err);
+        res.status(500).send("Internal Server Error")
+    }
 })
 
 module.exports = router;

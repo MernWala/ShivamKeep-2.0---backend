@@ -16,20 +16,20 @@ router.get('/fetchallnotes', fetchuser, async (req, res) => {
     }
 });
 
-// ROUT 2 : Adda new note using POST -> /api/notes/addnote. Login Require
+// ROUT 2 : Add a new note using POST -> /api/notes/addnote. Login Require
 router.post('/addnote', fetchuser, [
     body('title', 'Enter a valid title').isLength({ min: 3 }),
     body('description', 'Enter a valid description').isLength({ min: 5 })
 ], async (req, res) => {
     try {
-        const { title, description, tag } = req.body;
+        const { title, description, tags } = req.body;
         const error = validationResult(req)
         if (!error.isEmpty()) {
             return res.status(400).json({ errors: error.array() });
         }
 
         const note = new Notes({
-            title, description, tag, user: req.user.id
+            title, description, tags, user: req.user.id
         })
 
         const saveNote = await note.save();
@@ -41,5 +41,34 @@ router.post('/addnote', fetchuser, [
     }
 
 });
+
+// ROUT 3: Update an existing note using PUT: /api/notes/updateNote/:id. Login require
+router.put('/updatenote/:id', fetchuser, async (req, res) => {
+    try {
+        const { title, description, tags } = req.body;
+
+        // creating a newNote object
+        const newNote = {}
+        if (title) { newNote.title = title };
+        if (description) { newNote.description = description }
+        if (tags) { newNote.tags = tags }
+
+        // Finding the note to be updated and update it.
+        let note = await Notes.findById(req.params.id);
+        if (!note) {
+            return res.status(404).send("Not found");
+        }
+
+        if (note.user.toString() !== req.user.id) {
+            return res.status(401).send("Not Allowed");
+        }
+
+        note = await Notes.findByIdAndUpdate(req.params.id, { $set: newNote }, { new: true });
+        res.json({ note });
+
+    } catch (error) {
+
+    }
+})
 
 module.exports = router

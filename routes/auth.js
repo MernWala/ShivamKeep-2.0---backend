@@ -3,12 +3,13 @@ const User = require('../model/User')
 const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');   // this will help to hash the password
 const jwt = require('jsonwebtoken');
+const fetchuser = require('../middleware/fetchuser');
 
 const JWT_Secret = "HulkIsSoP@werf&ll"
-
 const router = express.Router();
+
+// ROUT 1 : create a user using POST "/api/auth/createuser". No login required
 router.post('/createuser', [
-    // create a user using POST "/api/auth/createuser". No login required
     body('name', "Enter valid name").isLength({ min: 3 }),
     body('email', "Enter valid mail Id").isEmail(),
     body('password').isLength({ min: 5 }),
@@ -54,7 +55,7 @@ router.post('/createuser', [
 
 });
 
-// authenticate a user using POST -> /api/auth/login. No login require
+// ROUT 2 : Login / Authenticate a user using POST -> /api/auth/login. No login require
 router.post('/login', [
     body('email', "Enter valid mail Id").isEmail(),
     body('password', "Password can't be blank").exists(),
@@ -67,16 +68,16 @@ router.post('/login', [
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const {email, password} = req.body;
+    const { email, password } = req.body;
     try {
-        const user = await User.findOne({email});
-        if(!user){
-            return res.status(400).json({error: "Invalid Userid or Password !"});
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ error: "Invalid Userid or Password !" });
         }
 
         const passwordCompare = await bcrypt.compare(password, user.password);
-        if(!passwordCompare){
-            return res.status(400).json({error: "Invalid Userid or Password !"});
+        if (!passwordCompare) {
+            return res.status(400).json({ error: "Invalid Userid or Password !" });
         }
 
         const data = {
@@ -87,11 +88,24 @@ router.post('/login', [
         const authTocken = jwt.sign(data, JWT_Secret);
         res.json({ authTocken });
 
-    }  catch (err) {
+    } catch (err) {
         // catching unknown erros
         console.error(err);
         res.status(500).send("Internal Server Error")
     }
-})
+});
+
+// ROUT 3 : Get loggedin User data using POST -> /api/auth/getData. Login Require
+router.post('/getuser', fetchuser, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId).select("-password");
+        res.send(user);
+    } catch (err) {
+        // catching unknown erros
+        console.error(err);
+        res.status(500).send("Internal Server Error")
+    }
+});
 
 module.exports = router;

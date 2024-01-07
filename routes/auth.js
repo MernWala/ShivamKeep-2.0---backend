@@ -50,7 +50,7 @@ router.post('/createuser', [
     } catch (err) {
         // catching unknown erros
         console.error(err);
-        res.status(500).send("Internal Server Error")
+        res.status(500).send(err.message)
     }
 
 });
@@ -91,7 +91,7 @@ router.post('/login', [
     } catch (err) {
         // catching unknown erros
         console.error(err);
-        res.status(500).send("Internal Server Error")
+        res.status(500).send(err.message)
     }
 });
 
@@ -104,7 +104,7 @@ router.post('/getuser', fetchuser, async (req, res) => {
     } catch (err) {
         // catching unknown erros
         console.error(err);
-        res.status(500).send("Internal Server Error")
+        res.status(500).send(err.message)
     }
 });
 
